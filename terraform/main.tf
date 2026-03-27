@@ -39,15 +39,17 @@ module "iam" {
 # -----------------------------------------------------------------------------
 # SSO — IAM Identity Center permission set + account assignment
 # Depends on iam module (policies must exist before SSO attaches them).
-# Requires IAM Identity Center to be enabled in the account.
+# PREREQUISITE: IAM Identity Center must be enabled in the account first.
+#   AWS Console → IAM Identity Center → Enable
+# Uncomment this module after enabling Identity Center.
 # -----------------------------------------------------------------------------
-module "sso" {
-  source = "./modules/sso"
-
-  project_name = var.project_name
-  environment  = var.environment
-  sso_username = var.sso_username
-}
+# module "sso" {
+#   source = "./modules/sso"
+#
+#   project_name = var.project_name
+#   environment  = var.environment
+#   sso_username = var.sso_username
+# }
 
 # -----------------------------------------------------------------------------
 # GitHub — CodeStar Connection (GitHub App integration)

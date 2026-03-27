@@ -34,10 +34,22 @@ variable "alb_sg_id"         { type = string }
 variable "ecs_sg_id"         { type = string }
 
 # New variables for modernization
-variable "use_spot"           { type = bool;   default = false } # true = FARGATE_SPOT (dev/staging)
-variable "log_retention_days" { type = number; default = 30 }   # CloudWatch log retention
-variable "min_capacity"       { type = number; default = 1 }    # Auto scaling minimum
-variable "max_capacity"       { type = number; default = 4 }    # Auto scaling maximum
+variable "use_spot" {
+  type    = bool
+  default = false # true = FARGATE_SPOT (dev/staging)
+}
+variable "log_retention_days" {
+  type    = number
+  default = 30 # CloudWatch log retention
+}
+variable "min_capacity" {
+  type    = number
+  default = 1 # Auto scaling minimum
+}
+variable "max_capacity" {
+  type    = number
+  default = 4 # Auto scaling maximum
+}
 
 locals {
   name_prefix = "${var.project_name}-${var.environment}"

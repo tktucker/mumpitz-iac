@@ -79,8 +79,9 @@ output "codedeploy_deployment_group" {
 
 # -----------------------------------------------------------------------------
 # SSO / IAM Identity Center
+# Uncomment after enabling IAM Identity Center and uncommenting module "sso"
 # -----------------------------------------------------------------------------
-output "sso_permission_set_arn" {
-  description = "ARN of the IAM Identity Center permission set for devops operators"
-  value       = module.sso.permission_set_arn
-}
+# output "sso_permission_set_arn" {
+#   description = "ARN of the IAM Identity Center permission set for devops operators"
+#   value       = module.sso.permission_set_arn
+# }

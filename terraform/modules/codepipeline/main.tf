@@ -30,7 +30,10 @@ variable "app_repo_name"          { type = string }  # GitHub repo name, e.g. "m
 variable "branch_name"            { type = string }  # e.g. "main", "develop", "staging"
 variable "codestar_connection_arn" { type = string } # ARN of the GitHub CodeStar Connection
 variable "github_owner"           { type = string }  # GitHub username or org, e.g. "tktucker"
-variable "require_approval"       { type = bool; default = false }
+variable "require_approval" {
+  type    = bool
+  default = false
+}
 variable "cb_lint_name"           { type = string }
 variable "cb_unit_test_name"      { type = string }
 variable "cb_security_name"       { type = string }
