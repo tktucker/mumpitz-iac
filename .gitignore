@@ -1,0 +1,22 @@
+# Terraform state and local cache
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!example.tfvars
+.terraform.lock.hcl
+override.tf
+crash.log
+
+# Terragrunt-generated files
+# These are written into the working directory at plan/apply time and
+# should NEVER be committed — Terragrunt regenerates them on every run.
+backend.tf
+versions_generated.tf
+.terragrunt-cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

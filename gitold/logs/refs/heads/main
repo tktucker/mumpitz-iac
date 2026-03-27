@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 85e57427f6697e7396471123cd08f3fd54a54bf5 Tom Tucker <tktucker@gmail.com> 1774447337 -0400	commit (initial): inital commit
+85e57427f6697e7396471123cd08f3fd54a54bf5 85e57427f6697e7396471123cd08f3fd54a54bf5 Tom Tucker <tktucker@gmail.com> 1774447352 -0400	Branch: renamed refs/heads/main to refs/heads/main
+85e57427f6697e7396471123cd08f3fd54a54bf5 64b831affb100c39be0a459e8a0ba678dc781f1c Tom Tucker <tktucker@gmail.com> 1774471359 -0400	commit: misc fixes and added sns support
+64b831affb100c39be0a459e8a0ba678dc781f1c 8903c5e6fd88a9c74d74e0f81e97bcdbfc32e2ca Tom Tucker <tktucker@gmail.com> 1774472973 -0400	commit: fix: add SNS permissions to devops-user platform policy
+8903c5e6fd88a9c74d74e0f81e97bcdbfc32e2ca 4b45ae1840aab71843db4ff920bf653b58255524 Tom Tucker <tktucker@gmail.com> 1774479139 -0400	commit: fix: add NAME_PREFIX env var to CodeBuild; fix curl health check in ECS initial taskdef
