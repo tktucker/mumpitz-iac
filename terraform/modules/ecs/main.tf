@@ -102,6 +102,7 @@ resource "aws_ecs_task_definition" "app" {
   task_role_arn            = var.task_role
 
   container_definitions = jsonencode([
+    # ── Flask application container ──────────────────────────────────────────
     {
       name      = var.app_name
       image     = var.ecr_image_url
@@ -116,8 +117,12 @@ resource "aws_ecs_task_definition" "app" {
       ]
 
       environment = [
-        { name = "FLASK_ENV",  value = var.environment },
-        { name = "APP_PORT",   value = tostring(var.app_port) }
+        { name = "FLASK_ENV",               value = var.environment },
+        { name = "APP_PORT",                value = tostring(var.app_port) },
+        { name = "XRAY_ENABLED",            value = "true" },
+        # X-Ray daemon runs as a sidecar in the same task; tasks share
+        # the network namespace in awsvpc mode so 127.0.0.1 resolves correctly.
+        { name = "AWS_XRAY_DAEMON_ADDRESS", value = "127.0.0.1:2000" }
       ]
 
       healthCheck = {
@@ -136,11 +141,101 @@ resource "aws_ecs_task_definition" "app" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
+    },
+
+    # ── AWS X-Ray daemon sidecar ─────────────────────────────────────────────
+    # Receives UDP trace segments from the Flask app on port 2000 and forwards
+    # them to the X-Ray service. Uses minimal resources (32 CPU, 256 MiB).
+    # The public.ecr.aws image is pulled without auth from any VPC with
+    # outbound internet access (NAT Gateway in private subnets).
+    {
+      name      = "xray-daemon"
+      image     = "public.ecr.aws/xray/aws-xray-daemon:latest"
+      essential = false  # App can run without tracing if daemon crashes
+
+      cpu    = 32
+      memory = 256
+
+      portMappings = [
+        {
+          containerPort = 2000
+          protocol      = "udp"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.app.name
+          "awslogs-region"        = data.aws_region.current.name
+          "awslogs-stream-prefix" = "xray"
+        }
+      }
     }
   ])
 }
 
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
+# -----------------------------------------------------------------------------
+# S3 Bucket — ALB access logs
+#
+# ALB writes one log file per load balancer node per 5-minute interval.
+# AWS does not charge for the PUT requests; you pay only for S3 storage.
+# The bucket policy grants the regional ELB service account write access —
+# this is the AWS-required pattern for ALB access logging.
+# -----------------------------------------------------------------------------
+resource "aws_s3_bucket" "alb_logs" {
+  bucket        = "${local.name_prefix}-alb-access-logs-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
+
+  tags = { Name = "${local.name_prefix}-alb-access-logs" }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+
+    expiration {
+      days = var.log_retention_days
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "alb_logs" {
+  bucket                  = aws_s3_bucket.alb_logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# The ELB service delivery account needs PutObject on the bucket.
+# AWS publishes the ELB account ID per region — us-east-1 is 127311923021.
+# Using the service principal approach (elasticloadbalancing.amazonaws.com)
+# is simpler and region-agnostic.
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ALBAccessLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logdelivery.elasticloadbalancing.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.alb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      }
+    ]
+  })
+}
 
 # -----------------------------------------------------------------------------
 # Application Load Balancer
@@ -154,7 +249,15 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = false  # Set true in production
 
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.bucket
+    prefix  = "${local.name_prefix}-alb"
+    enabled = true
+  }
+
   tags = { Name = "${local.name_prefix}-alb" }
+
+  depends_on = [aws_s3_bucket_policy.alb_logs]
 }
 
 # Blue Target Group — receives production traffic
@@ -349,8 +452,11 @@ output "service_name"        { value = aws_ecs_service.app.name }
 output "alb_dns_name"        { value = aws_lb.main.dns_name }
 output "alb_zone_id"         { value = aws_lb.main.zone_id }  # Required for Route53 ALIAS records
 output "alb_arn"             { value = aws_lb.main.arn }
+output "alb_arn_suffix"      { value = aws_lb.main.arn_suffix }  # Used for CloudWatch ALB metric dimensions
 output "alb_listener_arn"    { value = aws_lb_listener.http.arn }
 output "tg_blue_name"        { value = aws_lb_target_group.blue.name }
 output "tg_blue_arn"         { value = aws_lb_target_group.blue.arn }
+output "tg_blue_arn_suffix"  { value = aws_lb_target_group.blue.arn_suffix } # Used for CloudWatch TG metric dimensions
 output "tg_green_name"       { value = aws_lb_target_group.green.name }
 output "task_definition_arn" { value = aws_ecs_task_definition.app.arn }
+output "alb_logs_bucket"     { value = aws_s3_bucket.alb_logs.bucket }

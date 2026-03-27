@@ -286,6 +286,23 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect = "Allow"
         Action = ["cloudwatch:PutMetricData"]
         Resource = "*"
+      },
+      {
+        # Required for the X-Ray daemon sidecar and the aws-xray-sdk in Flask.
+        # PutTraceSegments — send trace segments to the X-Ray service.
+        # PutTelemetryRecords — send daemon health telemetry.
+        # GetSamplingRules/GetSamplingTargets — fetch dynamic sampling rules
+        #   so the SDK can respect centrally configured sampling rates.
+        Sid    = "XRayTracing"
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets",
+          "xray:GetSamplingStatisticSummaries"
+        ]
+        Resource = "*"
       }
     ]
   })

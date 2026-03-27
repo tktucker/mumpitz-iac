@@ -78,6 +78,14 @@ output "codedeploy_deployment_group" {
 }
 
 # -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+output "cloudwatch_dashboard_url" {
+  description = "Direct link to the CloudWatch overview dashboard"
+  value       = module.observability.dashboard_url
+}
+
+# -----------------------------------------------------------------------------
 # SSO / IAM Identity Center
 # Uncomment after enabling IAM Identity Center and uncommenting module "sso"
 # -----------------------------------------------------------------------------

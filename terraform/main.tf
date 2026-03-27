@@ -196,6 +196,23 @@ module "sns" {
 }
 
 # -----------------------------------------------------------------------------
+# Observability — CloudWatch Alarms + Dashboard
+# Depends on ECS (ALB/TG arn_suffix outputs) and SNS (topic ARN).
+# -----------------------------------------------------------------------------
+module "observability" {
+  source = "./modules/observability"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  region             = local.region
+  alb_arn_suffix     = module.ecs.alb_arn_suffix
+  tg_blue_arn_suffix = module.ecs.tg_blue_arn_suffix
+  ecs_cluster_name   = module.ecs.cluster_name
+  ecs_service_name   = module.ecs.service_name
+  sns_topic_arn      = module.sns.topic_arn
+}
+
+# -----------------------------------------------------------------------------
 # CodePipeline — GitHub source, 6-stage pipeline
 # -----------------------------------------------------------------------------
 module "codepipeline" {
